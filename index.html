@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DEFRAG — A Text Adventure</title>
+  <style>
+    /* ─── Reset ─────────────────────────────────────────────── */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    /* ─── Base ───────────────────────────────────────────────── */
+    html, body {
+      height: 100%;
+      background: #0a0a0a;
+      color: #33ff33;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 14px;
+      line-height: 1.5;
+      overflow: hidden;
+    }
+
+    /* ─── CRT scanline overlay ───────────────────────────────── */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.08) 2px,
+        rgba(0, 0, 0, 0.08) 4px
+      );
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    /* ─── Layout ─────────────────────────────────────────────── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 0;
+    }
+
+    /* ─── Title bar ──────────────────────────────────────────── */
+    #titlebar {
+      flex-shrink: 0;
+      background: #0d0d0d;
+      border-bottom: 1px solid #1a4d1a;
+      padding: 6px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    #titlebar .title {
+      color: #00cc44;
+      font-weight: bold;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 12px;
+    }
+
+    #titlebar .subtitle {
+      color: #336633;
+      font-size: 11px;
+    }
+
+    /* ─── Terminal ───────────────────────────────────────────── */
+    #terminal {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 0 16px;
+      cursor: text;
+    }
+
+    #terminal-output {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 12px 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    /* Scrollbar */
+    #terminal-output::-webkit-scrollbar {
+      width: 6px;
+    }
+    #terminal-output::-webkit-scrollbar-track {
+      background: #0a0a0a;
+    }
+    #terminal-output::-webkit-scrollbar-thumb {
+      background: #1a4d1a;
+      border-radius: 3px;
+    }
+
+    /* ─── Output lines ───────────────────────────────────────── */
+    .line {
+      min-height: 1.5em;
+    }
+
+    .line.normal   { color: #33ff33; }
+    .line.echo     { color: #00bb33; }
+    .line.success  { color: #00ff88; font-weight: bold; }
+    .line.warning  { color: #ffcc00; }
+    .line.error    { color: #ff4444; }
+    .line.system   { color: #00aaff; }
+    .line.win      { color: #00ff88; font-weight: bold; }
+    .line.gameover { color: #ff2222; font-weight: bold; }
+
+    /* ─── Input row ──────────────────────────────────────────── */
+    #input-wrapper {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      padding: 6px 0 10px;
+      border-top: 1px solid #1a3d1a;
+      gap: 4px;
+    }
+
+    #prompt {
+      color: #00cc44;
+      white-space: nowrap;
+      flex-shrink: 0;
+      font-weight: bold;
+    }
+
+    #terminal-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #33ff33;
+      font-family: inherit;
+      font-size: inherit;
+      caret-color: #33ff33;
+    }
+
+    /* Cursor blink animation */
+    #terminal-input::placeholder {
+      color: #1a4d1a;
+    }
+
+    /* ─── Responsive ─────────────────────────────────────────── */
+    @media (max-width: 600px) {
+      html, body {
+        font-size: 12px;
+      }
+      #titlebar {
+        padding: 4px 10px;
+      }
+      #terminal {
+        padding: 0 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="titlebar">
+      <span class="title">DEFRAG — Text Adventure v1.0</span>
+      <span class="subtitle">NEXUS SYSTEMS INC. · UNAUTHORISED ACCESS MONITORED</span>
+    </div>
+    <div id="terminal">
+      <div id="terminal-output"></div>
+      <div id="input-wrapper">
+        <span id="prompt"></span>
+        <input
+          id="terminal-input"
+          type="text"
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
+          placeholder="type a command..."
+          aria-label="Terminal input"
+        />
+      </div>
+    </div>
+  </div>
+
+  <script src="dist/bundle.js"></script>
+</body>
+</html>
