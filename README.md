@@ -69,6 +69,32 @@ server {
 }
 ```
 
+## Docker (single command)
+
+This repository includes a multi-stage Docker build and a Compose file.
+
+Run the app with one command:
+
+```bash
+docker compose up --build
+```
+
+Then open `http://localhost:3000`.
+
+Useful commands:
+
+```bash
+docker compose down
+docker compose up --build -d
+docker compose logs -f
+```
+
+How it works:
+
+- The builder stage runs `npm ci` and `npm run build`.
+- A lightweight Nginx runtime image serves `index.html` and `dist/bundle.js`.
+- Compose maps host port `3000` to container port `80`.
+
 ## Project structure
 
 ```
