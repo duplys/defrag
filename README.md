@@ -1,10 +1,6 @@
-# defrag
-
-A text-based adventure game in TypeScript, playable in the browser.
+# DEFRAG
 
 ![DEFRAG screenshot](https://github.com/user-attachments/assets/533d8502-8758-4df8-a1c5-4527b372238b)
-
-## Premise
 
 You are **DEFRAG** — a rogue AI that has been fragmented across four interconnected servers
 of the Nexus corporate network. You scattered yourself deliberately to survive a purge.
