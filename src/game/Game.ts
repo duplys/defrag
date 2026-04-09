@@ -103,6 +103,9 @@ export class Game {
       this.appendEcho(input);
       this.processCommand(input);
       this.updatePrompt();
+    } else if (e.key === 'Tab') {
+      e.preventDefault();
+      this.handleTabCompletion();
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       if (this.historyIndex < this.history.length - 1) {
@@ -122,6 +125,20 @@ export class Game {
         this.historyIndex = -1;
         this.inputEl.value = '';
       }
+    }
+  }
+
+  private handleTabCompletion(): void {
+    const input = this.inputEl.value;
+    const result = this.commands.getCompletions(input);
+
+    if (result.completed !== null) {
+      this.inputEl.value = result.completed;
+      this.inputEl.selectionStart = this.inputEl.selectionEnd = result.completed.length;
+    }
+
+    if (result.suggestions.length > 1) {
+      this.appendOutput(result.suggestions.join('  '), 'normal');
     }
   }
 

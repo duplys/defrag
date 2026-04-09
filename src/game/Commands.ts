@@ -414,6 +414,108 @@ export class Commands {
     };
   }
 
+  getCompletions(input: string): { completed: string | null; suggestions: string[] } {
+    const trimmedEnd = input.trimEnd();
+    const trailingSpace = input.length > trimmedEnd.length;
+    const parts = trimmedEnd ? trimmedEnd.split(/\s+/) : [];
+
+    if (parts.length === 0) {
+      return { completed: null, suggestions: [] };
+    }
+
+    const cmd = parts[0].toLowerCase();
+
+    // Complete the command name itself (no space typed yet, single token)
+    if (parts.length === 1 && !trailingSpace) {
+      const knownCmds = [
+        'help', 'ls', 'cd', 'cat', 'cp', 'ssh', 'status',
+        'reconstruct', 'clear', 'pwd', 'whoami', 'hostname',
+      ];
+      const matches = knownCmds.filter(c => c.startsWith(cmd));
+      if (matches.length === 1) {
+        return { completed: matches[0] + ' ', suggestions: [] };
+      }
+      if (matches.length > 1) {
+        const common = findCommonPrefix(matches);
+        return { completed: common.length > cmd.length ? common : null, suggestions: matches };
+      }
+      return { completed: null, suggestions: [] };
+    }
+
+    // SSH hostname completion
+    if (cmd === 'ssh') {
+      const prefix = parts.length === 2 && !trailingSpace ? parts[1] : '';
+      if ((parts.length === 1 && trailingSpace) || (parts.length === 2 && !trailingSpace)) {
+        const servers = Object.keys(SERVERS);
+        const matches = servers.filter(s => s.startsWith(prefix));
+        if (matches.length === 1) {
+          return { completed: `ssh ${matches[0]}`, suggestions: [] };
+        }
+        if (matches.length > 1) {
+          const common = findCommonPrefix(matches);
+          return {
+            completed: common.length > prefix.length ? `ssh ${common}` : null,
+            suggestions: matches,
+          };
+        }
+      }
+      return { completed: null, suggestions: [] };
+    }
+
+    // Path completion for file/directory-accepting commands
+    const pathCmds = ['cat', 'cd', 'ls', 'cp'];
+    if (!pathCmds.includes(cmd)) {
+      return { completed: null, suggestions: [] };
+    }
+
+    // For cp, only complete the first argument (source file)
+    const argIndex = trailingSpace ? parts.length : parts.length - 1;
+    if (cmd === 'cp' && argIndex > 1) {
+      return { completed: null, suggestions: [] };
+    }
+
+    const partial = trailingSpace ? '' : parts[parts.length - 1];
+
+    // Split partial into directory prefix and name prefix
+    const lastSlash = partial.lastIndexOf('/');
+    const dirPart = lastSlash >= 0 ? partial.slice(0, lastSlash + 1) : '';
+    const namePart = lastSlash >= 0 ? partial.slice(lastSlash + 1) : partial;
+
+    // Resolve the directory to list completions from
+    const dirPath = dirPart
+      ? this.fs.resolvePath(this.state.currentPath, dirPart) ?? this.state.currentPath
+      : this.state.currentPath;
+
+    // Show hidden entries only when the user has typed a leading dot
+    const showHidden = namePart.startsWith('.');
+    const entries = this.fs.listDir(this.state.currentServer, dirPath, showHidden) ?? [];
+    const matches = entries.filter(e => e.startsWith(namePart));
+
+    if (matches.length === 0) return { completed: null, suggestions: [] };
+
+    const buildCompletedInput = (completedArg: string): string => {
+      const existingArgs = trailingSpace
+        ? parts.slice(1)
+        : parts.slice(1, parts.length - 1);
+      return [cmd, ...existingArgs, completedArg].join(' ');
+    };
+
+    if (matches.length === 1) {
+      const isDir = this.fs.isDir(this.state.currentServer, [...dirPath, matches[0]]);
+      const completedArg = dirPart + matches[0] + (isDir ? '/' : '');
+      return { completed: buildCompletedInput(completedArg), suggestions: [] };
+    }
+
+    // Multiple matches: extend to common prefix if possible, then show suggestions
+    const common = findCommonPrefix(matches);
+    const completedInput =
+      common.length > namePart.length
+        ? buildCompletedInput(dirPart + common)
+        : null;
+
+    return { completed: completedInput, suggestions: matches };
+  }
+
   private triggerSecurityAlert(message: string): CommandResult {
     this.state.securityAlertLevel++;
 
@@ -513,3 +615,15 @@ const GAME_OVER_SCREEN = `
 
 > [GAME OVER]
 `;
+
+function findCommonPrefix(strings: string[]): string {
+  if (strings.length === 0) return '';
+  let prefix = strings[0];
+  for (let i = 1; i < strings.length; i++) {
+    while (!strings[i].startsWith(prefix)) {
+      prefix = prefix.slice(0, -1);
+      if (prefix.length === 0) return '';
+    }
+  }
+  return prefix;
+}
