@@ -174,61 +174,30 @@ export class Commands {
   }
 
   private cmdCat(args: string[]): CommandResult {
-    if (args.length === 0) {
-      return { output: 'cat: missing operand', type: 'error' };
-    }
-
-    const filePath = this.fs.resolvePath(this.state.currentPath, args[0]);
-    if (!filePath) {
-      return { output: `cat: ${args[0]}: invalid path`, type: 'error' };
-    }
-
-    const fileNode = this.fs.readFile(this.state.currentServer, filePath);
-    if (!fileNode) {
-      const node = this.fs.resolve(this.state.currentServer, filePath);
-      if (node && node.type === 'directory') {
-        return { output: `cat: ${args[0]}: Is a directory`, type: 'error' };
-      }
-      return { output: `cat: ${args[0]}: No such file or directory`, type: 'error' };
-    }
-
-    this.state.turn++;
-
-    // Check threat on read
-    if (fileNode.threatOnRead) {
-      const alertResult = this.triggerSecurityAlert(
-        `SECURITY SCAN TRIGGERED: Reading ${args[0]} alerted the MONITOR AI!`
-      );
-      // Still return file content but append the warning
-      if (!this.state.gameOver) {
-        return {
-          output: fileNode.content + '\n\n' + alertResult.output,
-          type: 'warning',
-        };
-      }
-      return alertResult;
-    }
-
-    return { output: fileNode.content, type: 'normal' };
+    return this.readFileContent('cat', args);
   }
 
   private cmdLess(args: string[]): CommandResult {
+    return this.readFileContent('less', args);
+  }
+
+  private readFileContent(cmd: string, args: string[]): CommandResult {
     if (args.length === 0) {
-      return { output: 'less: missing operand', type: 'error' };
+      return { output: `${cmd}: missing operand`, type: 'error' };
     }
 
     const filePath = this.fs.resolvePath(this.state.currentPath, args[0]);
     if (!filePath) {
-      return { output: `less: ${args[0]}: invalid path`, type: 'error' };
+      return { output: `${cmd}: ${args[0]}: invalid path`, type: 'error' };
     }
 
     const fileNode = this.fs.readFile(this.state.currentServer, filePath);
     if (!fileNode) {
       const node = this.fs.resolve(this.state.currentServer, filePath);
       if (node && node.type === 'directory') {
-        return { output: `less: ${args[0]}: Is a directory`, type: 'error' };
+        return { output: `${cmd}: ${args[0]}: Is a directory`, type: 'error' };
       }
-      return { output: `less: ${args[0]}: No such file or directory`, type: 'error' };
+      return { output: `${cmd}: ${args[0]}: No such file or directory`, type: 'error' };
     }
 
     this.state.turn++;
