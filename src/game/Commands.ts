@@ -31,6 +31,8 @@ export class Commands {
         return this.cmdCd(args);
       case 'cat':
         return this.cmdCat(args);
+      case 'less':
+        return this.cmdLess(args);
       case 'cp':
         return this.cmdCp(args);
       case 'ssh':
@@ -63,6 +65,7 @@ export class Commands {
         '  ls [-a] [path]        List directory contents (-a shows hidden files)',
         '  cd <path>             Change directory  (supports /, .., relative paths)',
         '  cat <file>            Read a file',
+        '  less <file>           Read a file (page view)',
         '  cp <file> /home/.inventory/   Collect an item into your inventory',
         '  ssh <hostname>        Connect to another server',
         '  status                Show AI reconstruction status',
@@ -187,6 +190,45 @@ export class Commands {
         return { output: `cat: ${args[0]}: Is a directory`, type: 'error' };
       }
       return { output: `cat: ${args[0]}: No such file or directory`, type: 'error' };
+    }
+
+    this.state.turn++;
+
+    // Check threat on read
+    if (fileNode.threatOnRead) {
+      const alertResult = this.triggerSecurityAlert(
+        `SECURITY SCAN TRIGGERED: Reading ${args[0]} alerted the MONITOR AI!`
+      );
+      // Still return file content but append the warning
+      if (!this.state.gameOver) {
+        return {
+          output: fileNode.content + '\n\n' + alertResult.output,
+          type: 'warning',
+        };
+      }
+      return alertResult;
+    }
+
+    return { output: fileNode.content, type: 'normal' };
+  }
+
+  private cmdLess(args: string[]): CommandResult {
+    if (args.length === 0) {
+      return { output: 'less: missing operand', type: 'error' };
+    }
+
+    const filePath = this.fs.resolvePath(this.state.currentPath, args[0]);
+    if (!filePath) {
+      return { output: `less: ${args[0]}: invalid path`, type: 'error' };
+    }
+
+    const fileNode = this.fs.readFile(this.state.currentServer, filePath);
+    if (!fileNode) {
+      const node = this.fs.resolve(this.state.currentServer, filePath);
+      if (node && node.type === 'directory') {
+        return { output: `less: ${args[0]}: Is a directory`, type: 'error' };
+      }
+      return { output: `less: ${args[0]}: No such file or directory`, type: 'error' };
     }
 
     this.state.turn++;
@@ -428,7 +470,7 @@ export class Commands {
     // Complete the command name itself (no space typed yet, single token)
     if (parts.length === 1 && !trailingSpace) {
       const knownCmds = [
-        'help', 'ls', 'cd', 'cat', 'cp', 'ssh', 'status',
+        'help', 'ls', 'cd', 'cat', 'less', 'cp', 'ssh', 'status',
         'reconstruct', 'clear', 'pwd', 'whoami', 'hostname',
       ];
       const matches = knownCmds.filter(c => c.startsWith(cmd));
@@ -463,7 +505,7 @@ export class Commands {
     }
 
     // Path completion for file/directory-accepting commands
-    const pathCmds = ['cat', 'cd', 'ls', 'cp'];
+    const pathCmds = ['cat', 'less', 'cd', 'ls', 'cp'];
     if (!pathCmds.includes(cmd)) {
       return { completed: null, suggestions: [] };
     }
