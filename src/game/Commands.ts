@@ -31,6 +31,8 @@ export class Commands {
         return this.cmdCd(args);
       case 'cat':
         return this.cmdCat(args);
+      case 'less':
+        return this.cmdLess(args);
       case 'cp':
         return this.cmdCp(args);
       case 'ssh':
@@ -63,6 +65,7 @@ export class Commands {
         '  ls [-a] [path]        List directory contents (-a shows hidden files)',
         '  cd <path>             Change directory  (supports /, .., relative paths)',
         '  cat <file>            Read a file',
+        '  less <file>           Read a file (page view)',
         '  cp <file> /home/.inventory/   Collect an item into your inventory',
         '  ssh <hostname>        Connect to another server',
         '  status                Show AI reconstruction status',
@@ -171,22 +174,30 @@ export class Commands {
   }
 
   private cmdCat(args: string[]): CommandResult {
+    return this.readFileContent('cat', args);
+  }
+
+  private cmdLess(args: string[]): CommandResult {
+    return this.readFileContent('less', args);
+  }
+
+  private readFileContent(cmd: string, args: string[]): CommandResult {
     if (args.length === 0) {
-      return { output: 'cat: missing operand', type: 'error' };
+      return { output: `${cmd}: missing operand`, type: 'error' };
     }
 
     const filePath = this.fs.resolvePath(this.state.currentPath, args[0]);
     if (!filePath) {
-      return { output: `cat: ${args[0]}: invalid path`, type: 'error' };
+      return { output: `${cmd}: ${args[0]}: invalid path`, type: 'error' };
     }
 
     const fileNode = this.fs.readFile(this.state.currentServer, filePath);
     if (!fileNode) {
       const node = this.fs.resolve(this.state.currentServer, filePath);
       if (node && node.type === 'directory') {
-        return { output: `cat: ${args[0]}: Is a directory`, type: 'error' };
+        return { output: `${cmd}: ${args[0]}: Is a directory`, type: 'error' };
       }
-      return { output: `cat: ${args[0]}: No such file or directory`, type: 'error' };
+      return { output: `${cmd}: ${args[0]}: No such file or directory`, type: 'error' };
     }
 
     this.state.turn++;
@@ -428,7 +439,7 @@ export class Commands {
     // Complete the command name itself (no space typed yet, single token)
     if (parts.length === 1 && !trailingSpace) {
       const knownCmds = [
-        'help', 'ls', 'cd', 'cat', 'cp', 'ssh', 'status',
+        'help', 'ls', 'cd', 'cat', 'less', 'cp', 'ssh', 'status',
         'reconstruct', 'clear', 'pwd', 'whoami', 'hostname',
       ];
       const matches = knownCmds.filter(c => c.startsWith(cmd));
@@ -463,7 +474,7 @@ export class Commands {
     }
 
     // Path completion for file/directory-accepting commands
-    const pathCmds = ['cat', 'cd', 'ls', 'cp'];
+    const pathCmds = ['cat', 'less', 'cd', 'ls', 'cp'];
     if (!pathCmds.includes(cmd)) {
       return { completed: null, suggestions: [] };
     }
